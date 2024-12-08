@@ -106,6 +106,7 @@ type ChairLocationInfo struct {
 	chairID    string
 	latitude   int
 	longitude  int
+	createdAt  time.Time
 }
 
 var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
@@ -171,8 +172,8 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 		if _, err := tx.ExecContext(
 			ctx,
-			`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
-			info.locationID, info.chairID, info.latitude, info.longitude,
+			`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
+			info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt,
 		); err != nil {
 			return
 		}
@@ -183,7 +184,7 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 }
 
 // queueに登録する。
-func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int) error {
+func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int, time time.Time) error {
 
 	//if _, err := tx.ExecContext(
 	//	ctx,
@@ -199,6 +200,7 @@ func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, c
 		chairID:    chairID,
 		latitude:   latitude,
 		longitude:  longitude,
+		createdAt:  time,
 	}
 
 	globalChairLocationQueueProcessor.add(cli)
@@ -226,17 +228,19 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	chairLocationID := ulid.Make().String()
-	err = InsertChairLocations(ctx, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude)
+	time := time.Now()
+
+	err = InsertChairLocations(ctx, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude, time)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	location := &ChairLocation{}
-	if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
+	//location := &ChairLocation{}
+	//if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
+	//	writeError(w, http.StatusInternalServerError, err)
+	//	return
+	//}
 
 	ride := &Ride{}
 	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1`, chair.ID); err != nil {
@@ -273,7 +277,7 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
-		RecordedAt: location.CreatedAt.UnixMilli(),
+		RecordedAt: time.UnixMilli(),
 	})
 }
 
