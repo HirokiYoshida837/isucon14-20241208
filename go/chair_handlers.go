@@ -195,7 +195,7 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 		println(`print suruyo`)
 
-		println(info)
+		println(&info)
 
 		println(info.locationID)
 		println(info.chairID)
