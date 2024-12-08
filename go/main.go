@@ -29,6 +29,10 @@ func main() {
 	defer tracer.Stop()
 
 	mux := setup()
+
+	// background goroutine
+	go insertCLIRoutine()
+
 	slog.Info("Listening on :8080")
 	http.ListenAndServe(":8080", mux)
 }

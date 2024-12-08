@@ -108,6 +108,21 @@ type ChairLocationInfo struct {
 	longitude  int
 }
 
+var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
+	mutex:              sync.RWMutex{},
+	ChairLocationQueue: make([]ChairLocationInfo, 0),
+	LastUpdate:         time.Time{},
+}
+
+// goroutineとして動かすための無限ループ
+func insertCLIRoutine() {
+	for {
+		// 前の処理が終わったら1秒スリープして再度処理を実行。
+		time.Sleep(time.Microsecond * 1000)
+		globalChairLocationQueueProcessor.process()
+	}
+}
+
 type ChairLocationQueueProcessor struct {
 	// mutexは内部で持つ。
 	mutex              sync.RWMutex
@@ -153,21 +168,43 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 	defer tx.Rollback()
 
 	for _, info := range cli {
-		InsertChairLocations(ctx, tx, info.locationID, info.chairID, info.longitude, info.latitude)
-	}
 
+		if _, err := tx.ExecContext(
+			ctx,
+			`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
+			info.locationID, info.chairID, info.latitude, info.longitude,
+		); err != nil {
+			return
+		}
+		return
+
+		//InsertChairLocations(ctx, tx, info.locationID, info.chairID, info.longitude, info.latitude)
+	}
 }
 
+// queueに登録する。
 func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int) error {
 
-	if _, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
-		locationID, chairID, latitude, longitude,
-	); err != nil {
-		return err
+	//if _, err := tx.ExecContext(
+	//	ctx,
+	//	`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
+	//	locationID, chairID, latitude, longitude,
+	//); err != nil {
+	//	return err
+	//}
+	//return nil
+
+	cli := ChairLocationInfo{
+		locationID: locationID,
+		chairID:    chairID,
+		latitude:   latitude,
+		longitude:  longitude,
 	}
+
+	globalChairLocationQueueProcessor.add(cli)
+
 	return nil
+
 }
 
 // イスから送られる、イスの現在情報を更新するAPI
