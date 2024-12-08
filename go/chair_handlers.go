@@ -142,7 +142,7 @@ func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
 
 	cp.ChairLocationQueue = append(cp.ChairLocationQueue, cli)
 
-	println(len(cp.ChairLocationQueue))
+	println("data adding to queue OK %d", len(cp.ChairLocationQueue))
 
 	cp.mutex.Unlock()
 }
@@ -173,13 +173,13 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 	tx, err := db.Beginx()
 	if err != nil {
-		return
+		println(err)
 	}
 	//defer tx.Rollback()
 
 	for _, info := range cli {
 
-		println("data adding to sql...")
+		println("data adding to sql... %d", len(cli))
 
 		if _, err := tx.ExecContext(
 			ctx,
@@ -193,8 +193,6 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 		println("data adding to sql OK!")
 		return
-
-		//InsertChairLocations(ctx, tx, info.locationID, info.chairID, info.longitude, info.latitude)
 	}
 
 	if err := tx.Commit(); err != nil {
