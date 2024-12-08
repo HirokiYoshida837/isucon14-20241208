@@ -31,6 +31,7 @@ func main() {
 	mux := setup()
 
 	// background goroutine
+	globalChairLocationQueueProcessor.clear()
 	go insertCLIRoutine()
 
 	slog.Info("Listening on :8080")
@@ -88,7 +89,7 @@ func setup() http.Handler {
 	//// Use the tracer middleware with the default service name "chi.router".
 	mux.Use(chitrace.Middleware(chitrace.WithServiceName("chi-server")))
 
-	mux.Use(middleware.Logger)
+	//mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 
 	mux.HandleFunc("POST /api/initialize", postInitialize)

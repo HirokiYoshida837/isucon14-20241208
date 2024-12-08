@@ -117,9 +117,15 @@ var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
 
 // goroutineとして動かすための無限ループ
 func insertCLIRoutine() {
+
+	println("start goroutine")
+
 	for {
+
+		println("start goroutine")
+
 		// 前の処理が終わったら1秒スリープして再度処理を実行。
-		time.Sleep(time.Microsecond * 1000)
+		time.Sleep(time.Microsecond * 300)
 		globalChairLocationQueueProcessor.process()
 	}
 }
