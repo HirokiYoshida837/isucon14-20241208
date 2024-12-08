@@ -175,13 +175,12 @@ func (cp *ChairLocationQueueProcessor) process() {
 
 	// Queueの内容をBulk Insertする
 	data := cp.ChairLocationQueue
-	insertChairLocationInfoBulk(ctx, data)
 
 	// 全部追加したので空にする。
 	cp.ChairLocationQueue = []ChairLocationInfo{}
 	cp.mutex.Unlock()
 
-	//println("ChairLocationQueueProcessor:process() end")
+	insertChairLocationInfoBulk(ctx, data)
 }
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
