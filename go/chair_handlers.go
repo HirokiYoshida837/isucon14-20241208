@@ -122,7 +122,7 @@ func insertCLIRoutine() {
 		println("start goroutine")
 
 		// 前の処理が終わったら2秒スリープして再度処理を実行。
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Millisecond * 10)
 		globalChairLocationQueueProcessor.process()
 
 		println("end goroutine")
