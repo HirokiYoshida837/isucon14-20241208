@@ -259,9 +259,9 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	chairLocationID := ulid.Make().String()
-	time := time.Now()
+	isuTime := time.Now()
 
-	err = InsertChairLocations(ctx, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude, time)
+	err = InsertChairLocations(ctx, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude, isuTime)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -308,7 +308,7 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
-		RecordedAt: time.UnixMilli(),
+		RecordedAt: isuTime.UnixMilli(),
 	})
 }
 
