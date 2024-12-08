@@ -67,6 +67,9 @@ func setup() http.Handler {
 	dbConfig.DBName = dbname
 	dbConfig.ParseTime = true
 
+	// 秘伝のタレ
+	dbConfig.InterpolateParams = true
+
 	//db, err := sqlx.Open("mysql", conf.FormatDSN())
 	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("test-go-mysql"))
 
