@@ -102,11 +102,11 @@ type chairPostCoordinateResponse struct {
 type ChairLocationQueue = []ChairLocationInfo
 
 type ChairLocationInfo struct {
-	locationID string
-	chairID    string
-	latitude   int
-	longitude  int
-	createdAt  time.Time
+	locationID string    `db:"id"`
+	chairID    string    `db:"chair_id"`
+	latitude   int       `db:"latitude"`
+	longitude  int       `db:"longitude"`
+	createdAt  time.Time `db:"created_at"`
 }
 
 var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
@@ -176,50 +176,55 @@ func (cp *ChairLocationQueueProcessor) process() {
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
-	println("insertChairLocationInfoBulk() start")
-	defer println("insertChairLocationInfoBulk() end")
+	//println("insertChairLocationInfoBulk() start")
+	//defer println("insertChairLocationInfoBulk() end")
 
 	tx, err := db.Beginx()
 	if err != nil {
 		println(err)
 	}
 
-	println("db.Beginx() ok. start")
+	if _, err = tx.NamedExecContext(ctx, "INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (:id, :chair_id, :latitude, :longitude, :created_at)",
+		cli,
+	); err != nil {
+		println(err)
+		// めんどくさいので握る
+	}
+
+	//println("db.Beginx() ok. start")
 	//defer tx.Rollback()
 
-	println("check queue data length %d", len(cli))
+	//println("check queue data length %d", len(cli))
 
-	for i, info := range cli {
-
-		println(`data adding to sql... %d`, i)
-
-		println(`print suruyo`)
-
-		println(&info)
-
-		println(info.locationID)
-		println(info.chairID)
-		println(info.latitude)
-		println(info.longitude)
-		println(info.createdAt.String())
-
-		println(`print shitayo`)
-
-		//println(`data adding to sql... this!! %d %d %d %d %d`, info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt)
-
-		if _, err := tx.ExecContext(
-			ctx,
-			`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
-			info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt,
-		); err != nil {
-
-			println(err)
-			return
-		}
-
-		println("data adding to sql OK!")
-		//return
-	}
+	//for _, info := range cli {
+	//
+	//	//println(`data adding to sql... %d`, i)
+	//	//
+	//	//println(`print suruyo`)
+	//	//
+	//	//println(&info)
+	//	//
+	//	//println(info.locationID)
+	//	//println(info.chairID)
+	//	//println(info.latitude)
+	//	//println(info.longitude)
+	//	//println(info.createdAt.String())
+	//	//
+	//	//println(`print shitayo`)
+	//
+	//	if _, err := tx.ExecContext(
+	//		ctx,
+	//		`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
+	//		info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt,
+	//	); err != nil {
+	//
+	//		println(err)
+	//		return
+	//	}
+	//
+	//	println("data adding to sql OK!")
+	//	//return
+	//}
 
 	if err := tx.Commit(); err != nil {
 		println(err)
@@ -230,15 +235,6 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 // queueに登録する。
 func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int, time time.Time) error {
 
-	//if _, err := tx.ExecContext(
-	//	ctx,
-	//	`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
-	//	locationID, chairID, latitude, longitude,
-	//); err != nil {
-	//	return err
-	//}
-	//return nil
-
 	cli := ChairLocationInfo{
 		locationID: locationID,
 		chairID:    chairID,
@@ -246,11 +242,8 @@ func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, c
 		longitude:  longitude,
 		createdAt:  time,
 	}
-
 	globalChairLocationQueueProcessor.add(cli)
-
 	return nil
-
 }
 
 // イスから送られる、イスの現在情報を更新するAPI
