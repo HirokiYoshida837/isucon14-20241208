@@ -184,9 +184,14 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 		println(err)
 	}
 
+	println(len(cli))
+
 	if _, err = tx.NamedExecContext(ctx, "INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (:id, :chair_id, :latitude, :longitude, :created_at)",
 		cli,
 	); err != nil {
+
+		println("sql error !!!!")
+
 		println(err)
 		// めんどくさいので握る
 	}
