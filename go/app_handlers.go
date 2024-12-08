@@ -856,7 +856,7 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 
 	// 利用可能なイスのリスト
 	availableChairsQuery := `
-		select *
+		select c.*
 			from chairs c
 			left join isuride.rides r on c.id = r.chair_id
 			left join isuride.ride_statuses rs on r.id = rs.ride_id
