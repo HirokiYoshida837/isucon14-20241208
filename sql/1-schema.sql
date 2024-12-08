@@ -60,12 +60,8 @@ CREATE TABLE chair_locations
   COMMENT = '椅子の現在位置情報テーブル';
 
 
-create index chair_locations_chair_id_index
-    on chair_locations (chair_id);
-
-
-create index chair_locations_created_at_chair_id_index
-    on chair_locations (created_at, chair_id);
+create index chair_locations_chair_id_created_at_index
+    on chair_locations (chair_id, created_at);
 
 
 
@@ -121,6 +117,11 @@ create index rides_chair_id_index
 
 create index `rides_user_id_index`
     on rides (user_id);
+
+create index rides_chair_id_created_at_index
+    on rides (chair_id, created_at);
+
+
 
 
 DROP TABLE IF EXISTS ride_statuses;
@@ -185,8 +186,8 @@ CREATE TABLE coupons
 create index coupons_used_by_index
     on coupons (used_by);
 
--- create index coupons_code_user_id_used_by_index
---     on coupons (code, user_id, used_by);
+create index coupons_code_index
+    on coupons (code);
 
 create index coupons_code_user_id_used_by_created_at_index
     on coupons (user_id, code, used_by, created_at);
