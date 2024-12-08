@@ -191,8 +191,21 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 	for i, info := range cli {
 
-		println("data adding to sql... %d, %d", i, info)
-		println("data adding to sql... this!! %d %d %d %d %d", info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt)
+		println(`data adding to sql... %d`, i)
+
+		println(`print suruyo`)
+
+		println(info)
+
+		println(info.locationID)
+		println(info.chairID)
+		println(info.latitude)
+		println(info.longitude)
+		println(info.createdAt)
+
+		println(`print shitayo`)
+
+		//println(`data adding to sql... this!! %d %d %d %d %d`, info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt)
 
 		if _, err := tx.ExecContext(
 			ctx,
