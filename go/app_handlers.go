@@ -869,10 +869,30 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	chairIds := make([]string, 0)
 	for _, chair := range chairs {
-		if !chair.IsActive {
-			continue
-		}
+		chairIds = append(chairIds, chair.ID)
+	}
+	//
+	//var inQuery string
+	//var params []interface{}
+	//inQuery, params, err = sqlx.In("select * from chair_locations where chair_id in (?) order by created_at",
+	//	chairIds,
+	//)
+	//if err != nil {
+	//	writeError(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//// ここでselect文を実行。 inをつかったクエリを db.Rebindする。組立時に取ったパラメータをここで ... をつかって渡す。
+	//chairLocation := &ChairLocation{}
+	//err = db.SelectContext(ctx, &chairLocation, db.Rebind(inQuery), params...)
+	//if err != nil {
+	//	writeError(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+
+	for _, chair := range chairs {
 
 		rides := []*Ride{}
 		// 各イスに対してridesを取ってくる
@@ -881,24 +901,8 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		skip := false
-		for _, ride := range rides {
-			// 過去にライドが存在し、かつ、それが完了していない場合はスキップ
-			status, err := getLatestRideStatus(ctx, db, ride.ID)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, err)
-				return
-			}
-			if status != "COMPLETED" {
-				skip = true
-				break
-			}
-		}
-		if skip {
-			continue
-		}
-
 		// 最新の位置情報を取得
+		// TODO : IN句で改善できるかも？ -> だめそう
 		chairLocation := &ChairLocation{}
 		err = db.GetContext(
 			ctx,
