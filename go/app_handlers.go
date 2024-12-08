@@ -765,11 +765,6 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGetNotificationResponseChairStats, error) {
 	stats := appGetNotificationResponseChairStats{}
 
-	//select rs.* from ride_statuses rs
-	//left join rides r on r.id = rs.ride_id
-	//where chair_id = '?'
-	//order by rs.created_at;
-
 	rides := []Ride{}
 	err := tx.SelectContext(
 		ctx,
@@ -784,14 +779,14 @@ func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGe
 	totalRideCount := 0
 	totalEvaluation := 0.0
 
-	rideStatusesArray := []RideStatus{}
 	selectQuery := `
-		select rs.* from ride_statuses rs
+		select count(*) from ride_statuses rs
 			left join rides r on r.id = rs.ride_id
 			where chair_id = ?
-			order by rs.created_at`
+			and rs.status = 'COMPLETED'`
 
-	err = tx.SelectContext(ctx, &rideStatusesArray, selectQuery, chairID)
+	// total ride count取得
+	err = tx.GetContext(ctx, &totalRideCount, selectQuery, chairID)
 	if err != nil {
 		return stats, err
 	}
@@ -802,12 +797,6 @@ func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGe
 			where chair_id = ?`
 	err = tx.GetContext(ctx, &evaluationCount, evalCountQuery, chairID)
 	totalEvaluation = float64(float32(evaluationCount))
-
-	for _, rideStatuses := range rideStatusesArray {
-		if rideStatuses.Status == "COMPLETED" {
-			totalRideCount++
-		}
-	}
 
 	stats.TotalRidesCount = totalRideCount
 	if totalRideCount > 0 {
