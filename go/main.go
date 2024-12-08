@@ -4,7 +4,6 @@ import (
 	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log/slog"
 	"net"
 	"net/http"
@@ -16,17 +15,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
-	chitrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-chi/chi.v5"
-	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"
 )
 
 var db *sqlx.DB
 
 func main() {
-	// Start the tracer
-	tracer.Start()
-	defer tracer.Stop()
+	//// Start the tracer
+	//tracer.Start()
+	//defer tracer.Stop()
 
 	mux := setup()
 
@@ -75,10 +71,11 @@ func setup() http.Handler {
 	// 秘伝のタレ
 	dbConfig.InterpolateParams = true
 
-	//db, err := sqlx.Open("mysql", conf.FormatDSN())
-	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("test-go-mysql"))
-
-	_db, err := sqlxtrace.Connect("mysql", dbConfig.FormatDSN())
+	////db, err := sqlx.Open("mysql", conf.FormatDSN())
+	//sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("test-go-mysql"))
+	//
+	//_db, err := sqlxtrace.Connect("mysql", dbConfig.FormatDSN())
+	_db, err := sqlx.Connect("mysql", dbConfig.FormatDSN())
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +86,7 @@ func setup() http.Handler {
 	mux := chi.NewRouter()
 
 	//// Use the tracer middleware with the default service name "chi.router".
-	mux.Use(chitrace.Middleware(chitrace.WithServiceName("chi-server")))
+	//mux.Use(chitrace.Middleware(chitrace.WithServiceName("chi-server")))
 
 	//mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
