@@ -36,6 +36,10 @@ CREATE TABLE chairs
 )
   COMMENT = '椅子情報テーブル';
 
+create index chairs_access_token_index
+    on chairs (access_token);
+
+
 DROP TABLE IF EXISTS chair_locations;
 CREATE TABLE chair_locations
 (
@@ -122,6 +126,10 @@ CREATE TABLE owners
   UNIQUE (chair_register_token)
 )
   COMMENT = '椅子のオーナー情報テーブル';
+
+create index `owners_access_token_index`
+    on owners (access_token);
+
 
 DROP TABLE IF EXISTS coupons;
 CREATE TABLE coupons
