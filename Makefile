@@ -28,7 +28,7 @@ mysql.restart:
 
 .PHONY: isuride.restart
 isuride.restart:
-	sudo systemctl restart isupipe-go.service
+	sudo systemctl restart isuride-go.service
 
 .PHONY: isuride.build
 isuride.build:
