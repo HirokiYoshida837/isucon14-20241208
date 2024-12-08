@@ -756,6 +756,18 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGetNotificationResponseChairStats, error) {
 	stats := appGetNotificationResponseChairStats{}
 
+	// TODO コレ消せるかも
+	rides := []Ride{}
+	err := tx.SelectContext(
+		ctx,
+		&rides,
+		`SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC`,
+		chairID,
+	)
+	if err != nil {
+		return stats, err
+	}
+
 	totalRideCount := 0
 	totalEvaluation := 0.0
 
@@ -766,7 +778,7 @@ func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGe
 			and rs.status = 'COMPLETED'`
 
 	// total ride count取得
-	err := tx.GetContext(ctx, &totalRideCount, selectQuery, chairID)
+	err = tx.GetContext(ctx, &totalRideCount, selectQuery, chairID)
 	if err != nil {
 		return stats, err
 	}
