@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	chitrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-chi/chi"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/go-chi/chi"
@@ -75,8 +74,8 @@ func setup() http.Handler {
 
 	mux := chi.NewRouter()
 
-	// Use the tracer middleware with the default service name "chi.router".
-	mux.Use(chitrace.Middleware())
+	//// Use the tracer middleware with the default service name "chi.router".
+	//mux.Use(chitrace.Middleware())
 
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
