@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"log/slog"
 	"net"
 	"net/http"
@@ -18,23 +19,21 @@ import (
 	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 	chitrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-chi/chi.v5"
 	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 var db *sqlx.DB
 
 func main() {
+	// Start the tracer
+	tracer.Start()
+	defer tracer.Stop()
+
 	mux := setup()
 	slog.Info("Listening on :8080")
 	http.ListenAndServe(":8080", mux)
 }
 
 func setup() http.Handler {
-
-	// Start the tracer
-	tracer.Start()
-	defer tracer.Stop()
-
 	host := os.Getenv("ISUCON_DB_HOST")
 	if host == "" {
 		host = "127.0.0.1"
@@ -80,7 +79,7 @@ func setup() http.Handler {
 	mux := chi.NewRouter()
 
 	//// Use the tracer middleware with the default service name "chi.router".
-	mux.Use(chitrace.Middleware())
+	mux.Use(chitrace.Middleware(chitrace.WithServiceName("chi-server")))
 
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
