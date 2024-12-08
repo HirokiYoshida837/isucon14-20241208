@@ -854,13 +854,14 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 	chairs := []Chair{}
 	nearbyChairs := []appGetNearbyChairsResponseChair{}
 
+	// 利用可能なイスのリスト
 	availableChairsQuery := `
-		select chair_id
-			from chairs
-			left join isuride.rides r on chairs.id = r.chair_id
-			left outer join isuride.ride_statuses rs on r.id = rs.ride_id
-			where chairs.is_active = 1
-			and (rs.status = 'COMPLETED' OR rs.status IS NULL)`
+		select *
+			from chairs c
+			left join isuride.rides r on c.id = r.chair_id
+			left join isuride.ride_statuses rs on r.id = rs.ride_id
+			where c.is_active = 1
+			and (rs.status is null OR rs.status = 'COMPLETED')`
 
 	db.SelectContext(ctx, &chairs, availableChairsQuery)
 	if err != nil {
