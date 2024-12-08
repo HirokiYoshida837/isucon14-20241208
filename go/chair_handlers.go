@@ -218,7 +218,7 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 		}
 
 		println("data adding to sql OK!")
-		return
+		//return
 	}
 
 	if err := tx.Commit(); err != nil {
