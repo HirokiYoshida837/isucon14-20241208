@@ -5,14 +5,13 @@ go 1.23
 toolchain go1.23.0
 
 require (
+	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/oklog/ulid/v2 v2.1.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.70.1
 )
-
-require github.com/go-chi/chi v1.5.4
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
