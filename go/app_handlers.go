@@ -765,6 +765,11 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGetNotificationResponseChairStats, error) {
 	stats := appGetNotificationResponseChairStats{}
 
+	//select rs.* from ride_statuses rs
+	//left join rides r on r.id = rs.ride_id
+	//where chair_id = '?'
+	//order by rs.created_at;
+
 	rides := []Ride{}
 	err := tx.SelectContext(
 		ctx,
@@ -779,40 +784,29 @@ func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGe
 	totalRideCount := 0
 	totalEvaluation := 0.0
 
-	// TODO loop改善
-	for _, ride := range rides {
-		rideStatuses := []RideStatus{}
-		err = tx.SelectContext(
-			ctx,
-			&rideStatuses,
-			`SELECT * FROM ride_statuses WHERE ride_id = ? ORDER BY created_at`,
-			ride.ID,
-		)
-		if err != nil {
-			return stats, err
-		}
+	rideStatusesArray := []RideStatus{}
+	selectQuery := `
+		select rs.* from ride_statuses rs
+			left join rides r on r.id = rs.ride_id
+			where chair_id = ?
+			order by rs.created_at`
 
-		var arrivedAt, pickupedAt *time.Time
-		var isCompleted bool
-		for _, status := range rideStatuses {
-			if status.Status == "ARRIVED" {
-				arrivedAt = &status.CreatedAt
-			} else if status.Status == "CARRYING" {
-				pickupedAt = &status.CreatedAt
-			}
-			if status.Status == "COMPLETED" {
-				isCompleted = true
-			}
-		}
-		if arrivedAt == nil || pickupedAt == nil {
-			continue
-		}
-		if !isCompleted {
-			continue
-		}
+	err = tx.SelectContext(ctx, &rideStatusesArray, selectQuery, chairID)
+	if err != nil {
+		return stats, err
+	}
 
-		totalRideCount++
-		totalEvaluation += float64(*ride.Evaluation)
+	var evaluationCount int64
+	evalCountQuery := `
+		select sum(rides.evaluation) from rides
+			where chair_id = ?`
+	err = tx.GetContext(ctx, &evaluationCount, evalCountQuery, chairID)
+	totalEvaluation = float64(float32(evaluationCount))
+
+	for _, rideStatuses := range rideStatusesArray {
+		if rideStatuses.Status == "COMPLETED" {
+			totalRideCount++
+		}
 	}
 
 	stats.TotalRidesCount = totalRideCount
