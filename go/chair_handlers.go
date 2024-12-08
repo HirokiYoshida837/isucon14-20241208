@@ -175,7 +175,7 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 	if err != nil {
 		return
 	}
-	defer tx.Rollback()
+	//defer tx.Rollback()
 
 	for _, info := range cli {
 
@@ -195,6 +195,11 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 		return
 
 		//InsertChairLocations(ctx, tx, info.locationID, info.chairID, info.longitude, info.latitude)
+	}
+
+	if err := tx.Commit(); err != nil {
+		println(err)
+		return
 	}
 }
 
