@@ -183,8 +183,11 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 	if err != nil {
 		println(err)
 	}
+
+	println("db.Beginx() ok. start")
 	//defer tx.Rollback()
 
+	println("check queue data length %d", len(cli))
 	for _, info := range cli {
 
 		println("data adding to sql... %d", len(cli))
