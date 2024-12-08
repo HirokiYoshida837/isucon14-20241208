@@ -175,13 +175,12 @@ func (cp *ChairLocationQueueProcessor) process() {
 
 	// Queueの内容をBulk Insertする
 	data := cp.ChairLocationQueue
-	insertChairLocationInfoBulk(ctx, data)
 
 	// 全部追加したので空にする。
 	cp.ChairLocationQueue = []ChairLocationInfo{}
 	cp.mutex.Unlock()
 
-	//println("ChairLocationQueueProcessor:process() end")
+	insertChairLocationInfoBulk(ctx, data)
 }
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
@@ -206,43 +205,6 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 		println(err.Error())
 		// めんどくさいので握る
 	}
-
-	//println("data adding to sql OK!")
-
-	//println("db.Beginx() ok. start")
-	//defer tx.Rollback()
-
-	//println("check queue data length %d", len(cli))
-
-	//for _, info := range cli {
-	//
-	//	//println(`data adding to sql... %d`, i)
-	//	//
-	//	//println(`print suruyo`)
-	//	//
-	//	//println(&info)
-	//	//
-	//	//println(info.id)
-	//	//println(info.chairID)
-	//	//println(info.latitude)
-	//	//println(info.longitude)
-	//	//println(info.createdAt.String())
-	//	//
-	//	//println(`print shitayo`)
-	//
-	//	if _, err := tx.ExecContext(
-	//		ctx,
-	//		`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
-	//		info.id, info.chairID, info.latitude, info.longitude, info.createdAt,
-	//	); err != nil {
-	//
-	//		println(err)
-	//		return
-	//	}
-	//
-
-	//	//return
-	//}
 
 	if err := tx.Commit(); err != nil {
 		println(err)
