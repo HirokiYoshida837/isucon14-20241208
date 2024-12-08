@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"net/http"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -118,11 +120,18 @@ var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
 // goroutineとして動かすための無限ループ
 func insertCLIRoutine() {
 
+	timeSpan := os.Getenv("ISUCON_GOROUTINE_SPAN")
+
+	timeNum, err := strconv.Atoi(timeSpan)
+	if err != nil {
+		println(err.Error())
+	}
+
 	for {
 		println("start goroutine")
 
 		// 前の処理が終わったら2秒スリープして再度処理を実行。
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * time.Duration(timeNum))
 		globalChairLocationQueueProcessor.process()
 
 		println("end goroutine")
