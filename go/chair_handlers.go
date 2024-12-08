@@ -118,14 +118,11 @@ var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
 // goroutineとして動かすための無限ループ
 func insertCLIRoutine() {
 
-	println("start goroutine")
-
 	for {
-
 		println("start goroutine")
 
 		// 前の処理が終わったら1秒スリープして再度処理を実行。
-		time.Sleep(time.Microsecond * 300)
+		time.Sleep(time.Microsecond * 1000)
 		globalChairLocationQueueProcessor.process()
 	}
 }
@@ -140,7 +137,13 @@ type ChairLocationQueueProcessor struct {
 // 追加したいデータをQueueに突っ込む。
 func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
 	cp.mutex.Lock()
+
+	println("data adding to queue...")
+
 	cp.ChairLocationQueue = append(cp.ChairLocationQueue, cli)
+
+	println(len(cp.ChairLocationQueue))
+
 	cp.mutex.Unlock()
 }
 
@@ -176,13 +179,19 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 	for _, info := range cli {
 
+		println("data adding to sql...")
+
 		if _, err := tx.ExecContext(
 			ctx,
 			`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
 			info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt,
 		); err != nil {
+
+			println(err)
 			return
 		}
+
+		println("data adding to sql OK!")
 		return
 
 		//InsertChairLocations(ctx, tx, info.locationID, info.chairID, info.longitude, info.latitude)
