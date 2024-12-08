@@ -121,9 +121,11 @@ func insertCLIRoutine() {
 	for {
 		println("start goroutine")
 
-		// 前の処理が終わったら1秒スリープして再度処理を実行。
+		// 前の処理が終わったら2秒スリープして再度処理を実行。
 		time.Sleep(time.Second * 2)
 		globalChairLocationQueueProcessor.process()
+
+		println("end goroutine")
 	}
 }
 
@@ -156,8 +158,9 @@ func (cp *ChairLocationQueueProcessor) clear() {
 
 // Queue内容の消化処理。
 func (cp *ChairLocationQueueProcessor) process() {
-	ctx := context.Background()
 
+	println("ChairLocationQueueProcessor:process() start")
+	ctx := context.Background()
 	cp.mutex.Lock()
 
 	// Queueの内容をBulk Insertする
@@ -167,9 +170,14 @@ func (cp *ChairLocationQueueProcessor) process() {
 	// 全部追加したので空にする。
 	cp.ChairLocationQueue = []ChairLocationInfo{}
 	cp.mutex.Unlock()
+
+	println("ChairLocationQueueProcessor:process() end")
 }
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
+
+	println("insertChairLocationInfoBulk() start")
+	defer println("insertChairLocationInfoBulk() end")
 
 	tx, err := db.Beginx()
 	if err != nil {
