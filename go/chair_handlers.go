@@ -128,13 +128,13 @@ func insertCLIRoutine() {
 	}
 
 	for {
-		println("start goroutine")
+		//println("start goroutine")
 
 		// 前の処理が終わったら2秒スリープして再度処理を実行。
 		time.Sleep(time.Millisecond * time.Duration(timeNum))
 		globalChairLocationQueueProcessor.process()
 
-		println("end goroutine")
+		//println("end goroutine")
 	}
 }
 
@@ -149,11 +149,11 @@ type ChairLocationQueueProcessor struct {
 func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
 	cp.mutex.Lock()
 
-	println("data adding to queue...")
+	//println("data adding to queue...")
 
 	cp.ChairLocationQueue = append(cp.ChairLocationQueue, cli)
 
-	println("data adding to queue OK %d", len(cp.ChairLocationQueue))
+	//println("data adding to queue OK %d", len(cp.ChairLocationQueue))
 
 	cp.mutex.Unlock()
 }
@@ -168,7 +168,7 @@ func (cp *ChairLocationQueueProcessor) clear() {
 // Queue内容の消化処理。
 func (cp *ChairLocationQueueProcessor) process() {
 
-	println("ChairLocationQueueProcessor:process() start")
+	//println("ChairLocationQueueProcessor:process() start")
 	ctx := context.Background()
 
 	cp.mutex.Lock()
@@ -181,7 +181,7 @@ func (cp *ChairLocationQueueProcessor) process() {
 	cp.ChairLocationQueue = []ChairLocationInfo{}
 	cp.mutex.Unlock()
 
-	println("ChairLocationQueueProcessor:process() end")
+	//println("ChairLocationQueueProcessor:process() end")
 }
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
@@ -190,27 +190,24 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 		return
 	}
 
-	println("insertChairLocationInfoBulk() start")
-	defer println("insertChairLocationInfoBulk() end")
+	//println("insertChairLocationInfoBulk() start")
+	//defer println("insertChairLocationInfoBulk() end")
 
 	tx, err := db.Beginx()
 	if err != nil {
 		println(err.Error())
 	}
 
-	println(len(cli))
+	//println(len(cli))
 
 	if _, err = tx.NamedExecContext(ctx, "INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (:id, :chair_id, :latitude, :longitude, :created_at)",
 		cli,
 	); err != nil {
-
-		println("sql error !!!!")
-
 		println(err.Error())
 		// めんどくさいので握る
 	}
 
-	println("data adding to sql OK!")
+	//println("data adding to sql OK!")
 
 	//println("db.Beginx() ok. start")
 	//defer tx.Rollback()
