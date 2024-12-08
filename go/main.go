@@ -80,7 +80,7 @@ func setup() http.Handler {
 	mux := chi.NewRouter()
 
 	//// Use the tracer middleware with the default service name "chi.router".
-	mux.Use(chitrace.Middleware())
+	mux.Use(chitrace.Middleware(chitrace.WithServiceName("chi-server")))
 
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
