@@ -197,7 +197,7 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
 		println("sql error !!!!")
 
-		println(err)
+		println(err.Error())
 		// めんどくさいので握る
 	}
 
