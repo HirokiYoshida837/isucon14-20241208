@@ -162,10 +162,6 @@ func (cp *ChairLocationQueueProcessor) process() {
 	println("ChairLocationQueueProcessor:process() start")
 	ctx := context.Background()
 
-	if len(cp.ChairLocationQueue) == 0 {
-		return
-	}
-
 	cp.mutex.Lock()
 
 	// Queueの内容をBulk Insertする
@@ -181,12 +177,16 @@ func (cp *ChairLocationQueueProcessor) process() {
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
+	if len(cli) == 0 {
+		return
+	}
+
 	println("insertChairLocationInfoBulk() start")
 	defer println("insertChairLocationInfoBulk() end")
 
 	tx, err := db.Beginx()
 	if err != nil {
-		println(err)
+		println(err.Error())
 	}
 
 	println(len(cli))
