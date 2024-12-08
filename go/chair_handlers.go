@@ -102,11 +102,11 @@ type chairPostCoordinateResponse struct {
 type ChairLocationQueue = []ChairLocationInfo
 
 type ChairLocationInfo struct {
-	locationID string    `db:"id"`
-	chairID    string    `db:"chair_id"`
-	latitude   int       `db:"latitude"`
-	longitude  int       `db:"longitude"`
-	createdAt  time.Time `db:"created_at"`
+	id        string    `db:"id"`
+	chairID   string    `db:"chair_id"`
+	latitude  int       `db:"latitude"`
+	longitude int       `db:"longitude"`
+	createdAt time.Time `db:"created_at"`
 }
 
 var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
@@ -176,8 +176,8 @@ func (cp *ChairLocationQueueProcessor) process() {
 
 func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 
-	//println("insertChairLocationInfoBulk() start")
-	//defer println("insertChairLocationInfoBulk() end")
+	println("insertChairLocationInfoBulk() start")
+	defer println("insertChairLocationInfoBulk() end")
 
 	tx, err := db.Beginx()
 	if err != nil {
@@ -190,6 +190,8 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 		println(err)
 		// めんどくさいので握る
 	}
+
+	println("data adding to sql OK!")
 
 	//println("db.Beginx() ok. start")
 	//defer tx.Rollback()
@@ -204,7 +206,7 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 	//	//
 	//	//println(&info)
 	//	//
-	//	//println(info.locationID)
+	//	//println(info.id)
 	//	//println(info.chairID)
 	//	//println(info.latitude)
 	//	//println(info.longitude)
@@ -215,14 +217,14 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 	//	if _, err := tx.ExecContext(
 	//		ctx,
 	//		`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
-	//		info.locationID, info.chairID, info.latitude, info.longitude, info.createdAt,
+	//		info.id, info.chairID, info.latitude, info.longitude, info.createdAt,
 	//	); err != nil {
 	//
 	//		println(err)
 	//		return
 	//	}
 	//
-	//	println("data adding to sql OK!")
+
 	//	//return
 	//}
 
@@ -236,11 +238,11 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int, time time.Time) error {
 
 	cli := ChairLocationInfo{
-		locationID: locationID,
-		chairID:    chairID,
-		latitude:   latitude,
-		longitude:  longitude,
-		createdAt:  time,
+		id:        locationID,
+		chairID:   chairID,
+		latitude:  latitude,
+		longitude: longitude,
+		createdAt: time,
 	}
 	globalChairLocationQueueProcessor.add(cli)
 	return nil
