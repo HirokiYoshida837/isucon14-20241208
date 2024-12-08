@@ -11,10 +11,13 @@ import (
 	"os/exec"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	chitrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-chi/chi"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+
+	"github.com/go-chi/chi"
 )
 
 var db *sqlx.DB
@@ -26,6 +29,11 @@ func main() {
 }
 
 func setup() http.Handler {
+
+	// Start the tracer
+	tracer.Start()
+	defer tracer.Stop()
+
 	host := os.Getenv("ISUCON_DB_HOST")
 	if host == "" {
 		host = "127.0.0.1"
@@ -66,8 +74,13 @@ func setup() http.Handler {
 	db = _db
 
 	mux := chi.NewRouter()
+
+	// Use the tracer middleware with the default service name "chi.router".
+	mux.Use(chitrace.Middleware())
+
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
+
 	mux.HandleFunc("POST /api/initialize", postInitialize)
 
 	// app handlers
