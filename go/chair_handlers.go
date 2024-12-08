@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"net/http"
+	"os"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -94,6 +100,174 @@ type chairPostCoordinateResponse struct {
 	RecordedAt int64 `json:"recorded_at"`
 }
 
+// 型定義
+type ChairLocationQueue = []ChairLocationInfo
+
+type ChairLocationInfo struct {
+	ID        string    `db:"id"`
+	ChairID   string    `db:"chair_id"`
+	Latitude  int       `db:"latitude"`
+	Longitude int       `db:"longitude"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
+var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
+	mutex:              sync.RWMutex{},
+	ChairLocationQueue: make([]ChairLocationInfo, 0),
+	LastUpdate:         time.Time{},
+}
+
+// goroutineとして動かすための無限ループ
+func insertCLIRoutine() {
+
+	timeSpan := os.Getenv("ISUCON_GOROUTINE_SPAN")
+
+	timeNum, err := strconv.Atoi(timeSpan)
+	if err != nil {
+		println(err.Error())
+	}
+
+	for {
+		println("start goroutine")
+
+		// 前の処理が終わったら2秒スリープして再度処理を実行。
+		time.Sleep(time.Millisecond * time.Duration(timeNum))
+		globalChairLocationQueueProcessor.process()
+
+		println("end goroutine")
+	}
+}
+
+type ChairLocationQueueProcessor struct {
+	// mutexは内部で持つ。
+	mutex              sync.RWMutex
+	ChairLocationQueue ChairLocationQueue
+	LastUpdate         time.Time
+}
+
+// 追加したいデータをQueueに突っ込む。
+func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
+	cp.mutex.Lock()
+
+	println("data adding to queue...")
+
+	cp.ChairLocationQueue = append(cp.ChairLocationQueue, cli)
+
+	println("data adding to queue OK %d", len(cp.ChairLocationQueue))
+
+	cp.mutex.Unlock()
+}
+
+// initializeするときなどのために、Queueのクリア処理を作っておく
+func (cp *ChairLocationQueueProcessor) clear() {
+	cp.mutex.Lock()
+	cp.ChairLocationQueue = make([]ChairLocationInfo, 0)
+	cp.mutex.Unlock()
+}
+
+// Queue内容の消化処理。
+func (cp *ChairLocationQueueProcessor) process() {
+
+	println("ChairLocationQueueProcessor:process() start")
+	ctx := context.Background()
+
+	cp.mutex.Lock()
+
+	// Queueの内容をBulk Insertする
+	data := cp.ChairLocationQueue
+	insertChairLocationInfoBulk(ctx, data)
+
+	// 全部追加したので空にする。
+	cp.ChairLocationQueue = []ChairLocationInfo{}
+	cp.mutex.Unlock()
+
+	println("ChairLocationQueueProcessor:process() end")
+}
+
+func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
+
+	if len(cli) == 0 {
+		return
+	}
+
+	println("insertChairLocationInfoBulk() start")
+	defer println("insertChairLocationInfoBulk() end")
+
+	tx, err := db.Beginx()
+	if err != nil {
+		println(err.Error())
+	}
+
+	println(len(cli))
+
+	if _, err = tx.NamedExecContext(ctx, "INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (:id, :chair_id, :latitude, :longitude, :created_at)",
+		cli,
+	); err != nil {
+
+		println("sql error !!!!")
+
+		println(err.Error())
+		// めんどくさいので握る
+	}
+
+	println("data adding to sql OK!")
+
+	//println("db.Beginx() ok. start")
+	//defer tx.Rollback()
+
+	//println("check queue data length %d", len(cli))
+
+	//for _, info := range cli {
+	//
+	//	//println(`data adding to sql... %d`, i)
+	//	//
+	//	//println(`print suruyo`)
+	//	//
+	//	//println(&info)
+	//	//
+	//	//println(info.id)
+	//	//println(info.chairID)
+	//	//println(info.latitude)
+	//	//println(info.longitude)
+	//	//println(info.createdAt.String())
+	//	//
+	//	//println(`print shitayo`)
+	//
+	//	if _, err := tx.ExecContext(
+	//		ctx,
+	//		`INSERT INTO chair_locations (id, chair_id, latitude, longitude, created_at) VALUES (?, ?, ?, ?, ?)`,
+	//		info.id, info.chairID, info.latitude, info.longitude, info.createdAt,
+	//	); err != nil {
+	//
+	//		println(err)
+	//		return
+	//	}
+	//
+
+	//	//return
+	//}
+
+	if err := tx.Commit(); err != nil {
+		println(err)
+		return
+	}
+}
+
+// queueに登録する。
+func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int, time time.Time) error {
+
+	cli := ChairLocationInfo{
+		ID:        locationID,
+		ChairID:   chairID,
+		Latitude:  latitude,
+		Longitude: longitude,
+		CreatedAt: time,
+	}
+	globalChairLocationQueueProcessor.add(cli)
+	return nil
+}
+
+// イスから送られる、イスの現在情報を更新するAPI
 func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	req := &Coordinate{}
@@ -112,20 +286,19 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	chairLocationID := ulid.Make().String()
-	if _, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
-		chairLocationID, chair.ID, req.Latitude, req.Longitude,
-	); err != nil {
+	isuTime := time.Now()
+
+	err = InsertChairLocations(ctx, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude, isuTime)
+	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	location := &ChairLocation{}
-	if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
+	//location := &ChairLocation{}
+	//if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
+	//	writeError(w, http.StatusInternalServerError, err)
+	//	return
+	//}
 
 	ride := &Ride{}
 	if err := tx.GetContext(ctx, ride, `SELECT * FROM rides WHERE chair_id = ? ORDER BY updated_at DESC LIMIT 1`, chair.ID); err != nil {
@@ -162,7 +335,7 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, &chairPostCoordinateResponse{
-		RecordedAt: location.CreatedAt.UnixMilli(),
+		RecordedAt: isuTime.UnixMilli(),
 	})
 }
 
