@@ -42,6 +42,8 @@ create index chairs_access_token_index
 create index chairs_is_active_index
     on chairs (is_active);
 
+create index chairs_owner_id_index
+    on chairs (owner_id);
 
 
 
@@ -57,8 +59,15 @@ CREATE TABLE chair_locations
 )
   COMMENT = '椅子の現在位置情報テーブル';
 
+
+create index chair_locations_chair_id_index
+    on chair_locations (chair_id);
+
+
 create index chair_locations_created_at_chair_id_index
     on chair_locations (created_at, chair_id);
+
+
 
 
 DROP TABLE IF EXISTS users;
@@ -109,6 +118,9 @@ CREATE TABLE rides
 
 create index rides_chair_id_index
     on rides (chair_id);
+
+create index `rides_user_id_index`
+    on rides (user_id);
 
 
 DROP TABLE IF EXISTS ride_statuses;
@@ -169,3 +181,13 @@ CREATE TABLE coupons
   PRIMARY KEY (user_id, code)
 )
   COMMENT 'クーポンテーブル';
+
+create index coupons_used_by_index
+    on coupons (used_by);
+
+-- create index coupons_code_user_id_used_by_index
+--     on coupons (code, user_id, used_by);
+
+create index coupons_code_user_id_used_by_created_at_index
+    on coupons (user_id, code, used_by, created_at);
+
