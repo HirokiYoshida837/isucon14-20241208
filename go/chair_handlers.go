@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -96,17 +98,76 @@ type chairPostCoordinateResponse struct {
 	RecordedAt int64 `json:"recorded_at"`
 }
 
-func InsertChairLocations(ctx context.Context, w http.ResponseWriter, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int) {
+// 型定義
+type ChairLocationQueue = []ChairLocationInfo
+
+type ChairLocationInfo struct {
+	locationID string
+	chairID    string
+	latitude   int
+	longitude  int
+}
+
+type ChairLocationQueueProcessor struct {
+	// mutexは内部で持つ。
+	mutex              sync.RWMutex
+	ChairLocationQueue ChairLocationQueue
+	LastUpdate         time.Time
+}
+
+// 追加したいデータをQueueに突っ込む。
+func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
+	cp.mutex.Lock()
+	cp.ChairLocationQueue = append(cp.ChairLocationQueue, cli)
+	cp.mutex.Unlock()
+}
+
+// initializeするときなどのために、Queueのクリア処理を作っておく
+func (cp *ChairLocationQueueProcessor) clear() {
+	cp.mutex.Lock()
+	cp.ChairLocationQueue = make([]ChairLocationInfo, 0)
+	cp.mutex.Unlock()
+}
+
+// Queue内容の消化処理。
+func (cp *ChairLocationQueueProcessor) process() {
+	ctx := context.Background()
+
+	cp.mutex.Lock()
+
+	// Queueの内容をBulk Insertする
+	data := cp.ChairLocationQueue
+	insertChairLocationInfoBulk(ctx, data)
+
+	// 全部追加したので空にする。
+	cp.ChairLocationQueue = []ChairLocationInfo{}
+	cp.mutex.Unlock()
+}
+
+func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
+
+	tx, err := db.Beginx()
+	if err != nil {
+		return
+	}
+	defer tx.Rollback()
+
+	for _, info := range cli {
+		InsertChairLocations(ctx, tx, info.locationID, info.chairID, info.longitude, info.latitude)
+	}
+
+}
+
+func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int) error {
 
 	if _, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO chair_locations (id, chair_id, latitude, longitude) VALUES (?, ?, ?, ?)`,
 		locationID, chairID, latitude, longitude,
 	); err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
+		return err
 	}
-
+	return nil
 }
 
 // イスから送られる、イスの現在情報を更新するAPI
@@ -128,7 +189,11 @@ func chairPostCoordinate(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback()
 
 	chairLocationID := ulid.Make().String()
-	InsertChairLocations(ctx, w, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude)
+	err = InsertChairLocations(ctx, tx, chairLocationID, chair.ID, req.Latitude, req.Longitude)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	location := &ChairLocation{}
 	if err := tx.GetContext(ctx, location, `SELECT * FROM chair_locations WHERE id = ?`, chairLocationID); err != nil {
