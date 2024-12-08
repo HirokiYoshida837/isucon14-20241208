@@ -147,7 +147,7 @@ type ChairLocationQueueProcessor struct {
 
 // 追加したいデータをQueueに突っ込む。
 func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
-	//cp.mutex.Lock()
+	cp.mutex.Lock()
 
 	//println("data adding to queue...")
 
@@ -155,7 +155,7 @@ func (cp *ChairLocationQueueProcessor) add(cli ChairLocationInfo) {
 
 	//println("data adding to queue OK %d", len(cp.ChairLocationQueue))
 
-	//cp.mutex.Unlock()
+	cp.mutex.Unlock()
 }
 
 // initializeするときなどのために、Queueのクリア処理を作っておく
