@@ -886,13 +886,6 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 
 	for _, chair := range chairs {
 
-		rides := []*Ride{}
-		// 各イスに対してridesを取ってくる
-		if err := db.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE chair_id = ? ORDER BY created_at DESC`, chair.ID); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
-
 		// 最新の位置情報を取得
 		// TODO : IN句で改善できるかも？ -> だめそう
 		chairLocation := &ChairLocation{}
