@@ -102,11 +102,11 @@ type chairPostCoordinateResponse struct {
 type ChairLocationQueue = []ChairLocationInfo
 
 type ChairLocationInfo struct {
-	id        string    `db:"id"`
-	chairID   string    `db:"chair_id"`
-	latitude  int       `db:"latitude"`
-	longitude int       `db:"longitude"`
-	createdAt time.Time `db:"created_at"`
+	ID        string    `db:"id"`
+	ChairID   string    `db:"chair_id"`
+	Latitude  int       `db:"latitude"`
+	Longitude int       `db:"longitude"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 var globalChairLocationQueueProcessor = &ChairLocationQueueProcessor{
@@ -248,11 +248,11 @@ func insertChairLocationInfoBulk(ctx context.Context, cli ChairLocationQueue) {
 func InsertChairLocations(ctx context.Context, tx *sqlx.Tx, locationID string, chairID string, latitude int, longitude int, time time.Time) error {
 
 	cli := ChairLocationInfo{
-		id:        locationID,
-		chairID:   chairID,
-		latitude:  latitude,
-		longitude: longitude,
-		createdAt: time,
+		ID:        locationID,
+		ChairID:   chairID,
+		Latitude:  latitude,
+		Longitude: longitude,
+		CreatedAt: time,
 	}
 	globalChairLocationQueueProcessor.add(cli)
 	return nil
