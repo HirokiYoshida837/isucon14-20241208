@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -281,6 +280,8 @@ type appPostRidesResponse struct {
 type ExecutableGet interface {
 	Get(dest interface{}, query string, args ...interface{}) error
 	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
 func getLatestRideStatus(ctx context.Context, tx ExecutableGet, rideID string) (string, error) {
@@ -761,7 +762,7 @@ func appGetNotification(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
-func getChairStats(ctx context.Context, tx *sqlx.Tx, chairID string) (appGetNotificationResponseChairStats, error) {
+func getChairStats(ctx context.Context, tx ExecutableGet, chairID string) (appGetNotificationResponseChairStats, error) {
 	stats := appGetNotificationResponseChairStats{}
 
 	rides := []Ride{}
@@ -777,6 +778,8 @@ func getChairStats(ctx context.Context, tx *sqlx.Tx, chairID string) (appGetNoti
 
 	totalRideCount := 0
 	totalEvaluation := 0.0
+
+	// TODO loop改善
 	for _, ride := range rides {
 		rideStatuses := []RideStatus{}
 		err = tx.SelectContext(
