@@ -15,6 +15,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
+	chitrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/go-chi/chi.v5"
+	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 var db *sqlx.DB
@@ -26,6 +30,11 @@ func main() {
 }
 
 func setup() http.Handler {
+
+	// Start the tracer
+	tracer.Start()
+	defer tracer.Stop()
+
 	host := os.Getenv("ISUCON_DB_HOST")
 	if host == "" {
 		host = "127.0.0.1"
@@ -59,15 +68,23 @@ func setup() http.Handler {
 	dbConfig.DBName = dbname
 	dbConfig.ParseTime = true
 
-	_db, err := sqlx.Connect("mysql", dbConfig.FormatDSN())
+	//db, err := sqlx.Open("mysql", conf.FormatDSN())
+	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("test-go-mysql"))
+
+	_db, err := sqlxtrace.Connect("mysql", dbConfig.FormatDSN())
 	if err != nil {
 		panic(err)
 	}
 	db = _db
 
 	mux := chi.NewRouter()
+
+	//// Use the tracer middleware with the default service name "chi.router".
+	mux.Use(chitrace.Middleware())
+
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
+
 	mux.HandleFunc("POST /api/initialize", postInitialize)
 
 	// app handlers
