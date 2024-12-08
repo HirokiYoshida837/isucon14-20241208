@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -861,55 +862,29 @@ func appGetNearbyChairs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chairIds := make([]string, 0)
+	chairIDs := []string{}
 	for _, chair := range chairs {
-		chairIds = append(chairIds, chair.ID)
+		chairIDs = append(chairIDs, chair.ID)
 	}
-	//
-	//var inQuery string
-	//var params []interface{}
-	//inQuery, params, err = sqlx.In("select * from chair_locations where chair_id in (?) order by created_at",
-	//	chairIds,
-	//)
-	//if err != nil {
-	//	writeError(w, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//
-	//// ここでselect文を実行。 inをつかったクエリを db.Rebindする。組立時に取ったパラメータをここで ... をつかって渡す。
-	//chairLocation := &ChairLocation{}
-	//err = db.SelectContext(ctx, &chairLocation, db.Rebind(inQuery), params...)
-	//if err != nil {
-	//	writeError(w, http.StatusInternalServerError, err)
-	//	return
-	//}
+
+	inQuery, params, err := sqlx.In(`SELECT * FROM chair_locations WHERE chair_id IN (?) ORDER BY created_at DESC LIMIT 1`, chairIDs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	chairLocations := []*ChairLocation{}
+	err = db.SelectContext(ctx, &chairLocations, db.Rebind(inQuery), params...)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	chairLocationMap := map[string]*ChairLocation{}
+	for _, chairLocation := range chairLocations {
+		chairLocationMap[chairLocation.ChairID] = chairLocation
+	}
 
 	for _, chair := range chairs {
-
-		rides := []*Ride{}
-		// 各イスに対してridesを取ってくる
-		if err := db.SelectContext(ctx, &rides, `SELECT * FROM rides WHERE chair_id = ? ORDER BY created_at DESC`, chair.ID); err != nil {
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		// 最新の位置情報を取得
-		// TODO : IN句で改善できるかも？ -> だめそう
-		chairLocation := &ChairLocation{}
-		err = db.GetContext(
-			ctx,
-			chairLocation,
-			`SELECT * FROM chair_locations WHERE chair_id = ? ORDER BY created_at DESC LIMIT 1`,
-			chair.ID,
-		)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				continue
-			}
-			writeError(w, http.StatusInternalServerError, err)
-			return
-		}
-
+		chairLocation := chairLocationMap[chair.ID]
 		if calculateDistance(coordinate.Latitude, coordinate.Longitude, chairLocation.Latitude, chairLocation.Longitude) <= distance {
 			nearbyChairs = append(nearbyChairs, appGetNearbyChairsResponseChair{
 				ID:    chair.ID,
